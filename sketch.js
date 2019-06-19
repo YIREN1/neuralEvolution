@@ -25,23 +25,24 @@ let allTimeHighScoreSpan;
 let bestScoreOfPipesSpan;
 let saveButton;
 let loadButton;
+let runBestButton;
+
 // Training or just showing the current best
 let runBest = false;
-let runBestButton;
+
 let bestBrain;
 let loadedBrain;
 let loadedBird;
+
 function preload() {
   bestBrain = loadJSON('bird.json');
-  
+
 }
 
-function setup() {
+const buildDOM = () => {
   let canvas = createCanvas(600, 400);
   canvas.parent('canvascontainer');
 
-  loadedBrain = NeuralNetwork.deserialize(bestBrain);
-  loadedBird = new Bird(loadedBrain);
   // Access the interface elements
   speedSlider = select('#speedSlider');
   speedSpan = select('#speed');
@@ -58,14 +59,21 @@ function setup() {
   loadButton = select('#load');
   loadButton.mousePressed(loadBird);
 
+  textSize(fontsize);
+  textAlign(CENTER, CENTER);
+}
+
+const firstGen = () => {
   for (let i = 0; i < totalPopulation; i++) {
     let bird = new Bird();
     activeBirds[i] = bird;
     allBirds[i] = bird;
   }
+}
 
-  textSize(fontsize);
-  textAlign(CENTER, CENTER);
+function setup() {
+  buildDOM();
+  firstGen();
 }
 
 const saveBird = () => {
@@ -74,13 +82,13 @@ const saveBird = () => {
 };
 
 const loadBird = async () => {
-  
+  loadedBrain = NeuralNetwork.deserialize(bestBrain);
+  loadedBird = new Bird(loadedBrain);
   bestBird = loadedBird;
-  // toggleState();
 };
 
 // Toggle the state of the simulation
-function toggleState() {
+const toggleState = () => {
   runBest = !runBest;
   // Show the best bird
   if (runBest) {
@@ -93,18 +101,15 @@ function toggleState() {
   }
 }
 
-function draw() {
-  background(0);
-
-  fill(230, 230, 250);
-  text(score, width / 2, 150);
-
+const cycleEvolution = () => {
   let cycles = speedSlider.value();
   speedSpan.html(cycles);
 
   for (let n = 0; n < cycles; n++) {
+
     for (var i = 0; i < pipes.length; i++) {
       pipes[i].update();
+
       if (pipes[i].offScreen()) {
         pipes.splice(i, 1);
         score++;
@@ -114,6 +119,7 @@ function draw() {
     if (runBest) {
       bestBird.think(pipes);
       bestBird.update();
+
       for (let j = 0; j < pipes.length; j++) {
         // Start over, bird hit pipe
         if (pipes[j].hit(bestBird)) {
@@ -125,6 +131,7 @@ function draw() {
       if (bestBird.bottomTop()) {
         resetGame();
       }
+
     } else {
       for (let i = 0; i < activeBirds.length; i++) {
         let bird = activeBirds[i];
@@ -150,7 +157,21 @@ function draw() {
     }
     counter++;
   }
+}
 
+function draw() {
+  background(0);
+  fill(230, 230, 250);
+  text(score, width / 2, 150);
+
+  cycleEvolution();
+
+  updateScoreAndBird();
+
+  drawStuff();
+}
+
+const updateScoreAndBird = () => {
   // What is highest score of the current population
   let tempHighScore = 0;
   // If we're training
@@ -190,8 +211,9 @@ function draw() {
   highScoreSpan.html(tempHighScore);
   allTimeHighScoreSpan.html(highScore);
   bestScoreOfPipesSpan.html(bestScoreOfPipes);
+}
 
-
+const drawStuff = () => {
   for (let i = 0; i < pipes.length; i++) {
     pipes[i].show();
   }
